@@ -11,8 +11,8 @@ namespace Core.Interfaces
     {
         Task<IReadOnlyList<T>> GetAllAsync();
         Task<IReadOnlyList<T>> GetAllAsync(params Expression<Func<T, Object>>[] includes);
-        Task GetByIdAsync(int id);
-        Task GetByIdAsync(int id, params Expression<Func<T, Object>>[] includes);
+        Task<T> GetByIdAsync(int id);
+        Task<T> GetByIdAsync(int id, params Expression<Func<T, Object>>[] includes);
       
         Task AddAsync (T item);
         Task UpdateAsync (T item);

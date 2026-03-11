@@ -1,7 +1,10 @@
 ﻿using Core.Interfaces;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,39 +12,74 @@ namespace Infrastructure.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        public Task AddAsync(T item)
+        private readonly AppDbContext _appDbContext;
+
+        public GenericRepository(AppDbContext appDbContext)
         {
-            throw new NotImplementedException();
+            _appDbContext = appDbContext;
         }
 
-        public Task DeleteAsync(int id)
+        public async Task AddAsync(T item)
         {
-            throw new NotImplementedException();
+           await _appDbContext.Set<T>().AddAsync(item);
+           await _appDbContext.SaveChangesAsync();
         }
 
-        public Task<IReadOnlyList<T>> GetAllAsync()
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var entity = await _appDbContext.Set<T>().FindAsync(id);
+            _appDbContext.Remove(entity);
+            await _appDbContext.SaveChangesAsync();
         }
 
-        public Task<IReadOnlyList<T>> GetAllAsync(params System.Linq.Expressions.Expression<Func<T, object>>[] includes)
+        public async Task<IReadOnlyList<T>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _appDbContext.Set<T>().AsNoTracking().ToListAsync();
+          
         }
 
-        public Task GetByIdAsync(int id)
+        public async Task<IReadOnlyList<T>> GetAllAsync(params System.Linq.Expressions.Expression<Func<T, object>>[] includes)
         {
-            throw new NotImplementedException();
+            IQueryable<T> query = _appDbContext.Set<T>().AsNoTracking();
+
+            // Apply includes
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return await query.ToListAsync();
         }
 
-        public Task GetByIdAsync(int id, params System.Linq.Expressions.Expression<Func<T, object>>[] includes)
+        public async Task<T> GetByIdAsync(int id)
+
         {
-            throw new NotImplementedException();
+            return  await _appDbContext.Set<T>().FindAsync(id);
         }
 
-        public Task UpdateAsync(T item)
+
+        public async Task<T> GetByIdAsync(int id, params Expression<Func<T, object>>[] includes)
         {
-            throw new NotImplementedException();
+            IQueryable<T> query = _appDbContext.Set<T>();
+
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
+        }
+        public async Task UpdateAsync(T item)
+        {
+            var existing = await _appDbContext.Set<T>().FindAsync(item);
+            _appDbContext.Entry(existing).CurrentValues.SetValues(item);
+            await _appDbContext.SaveChangesAsync();
         }
     }
 }
